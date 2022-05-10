@@ -9,8 +9,8 @@ import (
 	"time"
 
 	log "github.com/cihub/seelog"
-	"github.com/lyokalita/naspublic.ftserver/config"
-	"github.com/lyokalita/naspublic.ftserver/server"
+	"github.com/lyokalita/naspublic.ftserver/src/config"
+	"github.com/lyokalita/naspublic.ftserver/src/server"
 )
 
 func main() {

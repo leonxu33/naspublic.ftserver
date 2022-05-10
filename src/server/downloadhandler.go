@@ -1,4 +1,4 @@
-package handlers
+package server
 
 import (
 	"fmt"
@@ -7,7 +7,8 @@ import (
 	"path"
 
 	log "github.com/cihub/seelog"
-	"github.com/lyokalita/naspublic.ftserver/config"
+	"github.com/lyokalita/naspublic.ftserver/src/config"
+	"github.com/lyokalita/naspublic.ftserver/src/utils"
 )
 
 type DownloadHandler struct {
@@ -32,9 +33,22 @@ func (hdl *DownloadHandler) handleGet(rw http.ResponseWriter, r *http.Request) {
 		log.Errorf("Url Param 'key'is missing")
 		return
 	}
-	key := keys[0]
+	key := path.Join(keys[0])
 
 	sourcePath := path.Join(config.PublicDirectoryRoot, key)
+	if !utils.IsPathValid(sourcePath) {
+		log.Warnf("invalid query, %s", sourcePath)
+		http.Error(rw, "invalid query", 404)
+		return
+	}
+
+	info, err := os.Stat(sourcePath)
+	if err != nil || info.IsDir() {
+		log.Warnf("file does not exist, %s", sourcePath)
+		http.Error(rw, "File does not exist", 404)
+		return
+	}
+
 	rw.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", key))
 	http.ServeFile(rw, r, sourcePath)
 	log.Infof("file %s served", sourcePath)

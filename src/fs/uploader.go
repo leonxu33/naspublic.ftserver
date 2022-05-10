@@ -1,4 +1,4 @@
-package filetransfer
+package fs
 
 import (
 	"bufio"
@@ -7,7 +7,7 @@ import (
 	"os"
 
 	log "github.com/cihub/seelog"
-	"github.com/lyokalita/naspublic.ftserver/utils"
+	"github.com/lyokalita/naspublic.ftserver/src/utils"
 )
 
 type FileUploader struct {

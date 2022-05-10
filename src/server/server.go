@@ -7,8 +7,7 @@ import (
 	"path"
 
 	log "github.com/cihub/seelog"
-	"github.com/lyokalita/naspublic.ftserver/config"
-	"github.com/lyokalita/naspublic.ftserver/server/handlers"
+	"github.com/lyokalita/naspublic.ftserver/src/config"
 	"github.com/rs/cors"
 )
 
@@ -50,25 +49,27 @@ func constructServerMux() *http.ServeMux {
 		AllowedOrigins: config.WebfrontendOrigin,
 		AllowedMethods: []string{http.MethodPost},
 	})
-	uploadHandler := uploadCors.Handler(handlers.NewUploadHandler())
-
-	// /list
-	listCors := cors.New(cors.Options{
-		AllowedOrigins: config.WebfrontendOrigin,
-		AllowedMethods: []string{http.MethodGet},
-	})
-	listHandler := listCors.Handler(handlers.NewListHandler())
+	uploadHandler := uploadCors.Handler(NewUploadHandler())
 
 	// /download
 	downloadCors := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},
 		AllowedMethods: []string{http.MethodGet},
 	})
-	downloadHandler := downloadCors.Handler(handlers.NewDownloadHandler())
+	downloadHandler := downloadCors.Handler(NewDownloadHandler())
+
+	// /dir
+	listCors := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete},
+	})
+	listHandler := listCors.Handler(NewListHandler())
+
 	sm := http.NewServeMux()
 	sm.Handle(path.Join(config.ApiPath, "upload"), uploadHandler)
-	sm.Handle(path.Join(config.ApiPath, "list"), listHandler)
 	sm.Handle(path.Join(config.ApiPath, "download"), downloadHandler)
+	sm.Handle(path.Join(config.ApiPath, "dir"), listHandler)
+
 	return sm
 }
 

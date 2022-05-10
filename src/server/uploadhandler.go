@@ -1,4 +1,4 @@
-package handlers
+package server
 
 import (
 	"encoding/json"
@@ -8,9 +8,9 @@ import (
 	"path"
 
 	log "github.com/cihub/seelog"
-	"github.com/lyokalita/naspublic.ftserver/config"
-	"github.com/lyokalita/naspublic.ftserver/server/filetransfer"
-	"github.com/lyokalita/naspublic.ftserver/utils"
+	"github.com/lyokalita/naspublic.ftserver/src/config"
+	"github.com/lyokalita/naspublic.ftserver/src/fs"
+	"github.com/lyokalita/naspublic.ftserver/src/utils"
 )
 
 type UploadHandler struct {
@@ -36,6 +36,7 @@ func (hdl *UploadHandler) handlePost(rw http.ResponseWriter, r *http.Request) {
 	if ok && len(keys[0]) > 0 {
 		queryDir = keys[0]
 	}
+	queryDir = path.Join(queryDir)
 
 	ctx := r.Context()
 	cancelChan := make(chan int)
@@ -67,7 +68,12 @@ func (hdl *UploadHandler) handlePost(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	destinationFilePath := path.Join(config.PublicDirectoryRoot, queryDir, destinationFileName)
-	fileWriter := filetransfer.NewFileUploader(f_in, handler.Size, partSize, cancelChan)
+	if !utils.IsPathValid(destinationFilePath) {
+		log.Warnf("invalid query, %s", destinationFilePath)
+		http.Error(rw, "invalid query", 404)
+		return
+	}
+	fileWriter := fs.NewFileUploader(f_in, handler.Size, partSize, cancelChan)
 	go func() {
 		defer close(responseChan)
 		totalWriteSize, err := fileWriter.WriteTo(destinationFilePath)

@@ -1,10 +1,9 @@
-package filebrowser
+package fs
 
 import (
 	"io/ioutil"
-	"path"
 
-	"github.com/lyokalita/naspublic.ftserver/config"
+	"github.com/lyokalita/naspublic.ftserver/src/utils"
 )
 
 type FileMetadata struct {
@@ -15,7 +14,7 @@ type FileMetadata struct {
 }
 
 func GetFileMetadataList(dirPath string) ([]*FileMetadata, error) {
-	files, err := ioutil.ReadDir(path.Join(config.PublicDirectoryRoot, dirPath))
+	files, err := ioutil.ReadDir(dirPath)
 	if err != nil {
 		return nil, err
 	}
@@ -24,6 +23,8 @@ func GetFileMetadataList(dirPath string) ([]*FileMetadata, error) {
 		fileType := ""
 		if file.IsDir() {
 			fileType = "Folder"
+		} else {
+			fileType = utils.GetFileExtension(file.Name())
 		}
 		metadataList = append(metadataList, &FileMetadata{
 			Name:         file.Name(),
