@@ -30,21 +30,21 @@ func (hdl *DownloadHandler) handleGet(rw http.ResponseWriter, r *http.Request) {
 	log.Debug("handle file download request")
 	keys, ok := r.URL.Query()["key"]
 	if !ok || len(keys[0]) < 1 {
-		log.Errorf("Url Param 'key'is missing")
+		log.Infof("Url Param 'key'is missing")
 		return
 	}
 	key := path.Join(keys[0])
 
 	sourcePath := path.Join(config.PublicDirectoryRoot, key)
 	if !utils.IsPathValid(sourcePath) {
-		log.Warnf("invalid query, %s", sourcePath)
+		log.Infof("invalid query, %s", sourcePath)
 		http.Error(rw, "invalid query", 404)
 		return
 	}
 
 	info, err := os.Stat(sourcePath)
 	if err != nil || info.IsDir() {
-		log.Warnf("file does not exist, %s", sourcePath)
+		log.Infof("file does not exist, %s", sourcePath)
 		http.Error(rw, "File does not exist", 404)
 		return
 	}

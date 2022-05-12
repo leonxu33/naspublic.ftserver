@@ -42,37 +42,42 @@ func (hdl *UploadHandler) handlePost(rw http.ResponseWriter, r *http.Request) {
 	cancelChan := make(chan int)
 	responseChan := make(chan *UploadResponse)
 	var partSize int64 = 10 << 20
+
+	// fetch remote data
 	r.ParseMultipartForm(partSize)
 	f_in, handler, err := r.FormFile("uploadFile")
 	if err != nil {
 		log.Errorf("failed to retrieve file, err: ", err)
-		res := &UploadResponse{
-			Status:  -1,
-			Message: "unable to upload file",
-		}
-		res.ToJSON(rw)
+		http.Error(rw, "Invalid file", 404)
 		return
 	}
 	defer f_in.Close()
 	log.Infof("Upload File: %s, File Size: %v, MIME Header: %v", handler.Filename, handler.Size, handler.Header)
 
-	destinationFileName := utils.GetUniqueFileName(handler.Filename)
-	if len(destinationFileName) > 250 {
-		log.Errorf("file name is too long: %d", len(destinationFileName))
-		res := &UploadResponse{
-			Status:  -1,
-			Message: "file name is too long",
-		}
-		res.ToJSON(rw)
+	// check file name length
+	if len(handler.Filename) > 250 {
+		log.Infof("file name is too long: %d", len(handler.Filename))
+		http.Error(rw, "File name too long", 400)
 		return
 	}
 
-	destinationFilePath := path.Join(config.PublicDirectoryRoot, queryDir, destinationFileName)
+	// check path valid
+	destinationFilePath := path.Join(config.PublicDirectoryRoot, queryDir, handler.Filename)
 	if !utils.IsPathValid(destinationFilePath) {
-		log.Warnf("invalid query, %s", destinationFilePath)
-		http.Error(rw, "invalid query", 404)
+		log.Infof("invalid query, %s", destinationFilePath)
+		http.Error(rw, "Invalid query", 400)
 		return
 	}
+
+	// check file exists
+	_, err = os.Stat(destinationFilePath)
+	if err == nil {
+		log.Infof("file already exists, %s", destinationFilePath)
+		http.Error(rw, "File already exists", 400)
+		return
+	}
+
+	// save file
 	fileWriter := fs.NewFileUploader(f_in, handler.Size, partSize, cancelChan)
 	go func() {
 		defer close(responseChan)
@@ -98,11 +103,15 @@ func (hdl *UploadHandler) handlePost(rw http.ResponseWriter, r *http.Request) {
 
 	select {
 	case writerResponse := <-responseChan:
-		writerResponse.ToJSON(rw)
 		log.Infof("response value - success: %d, message: %s", writerResponse.Status, writerResponse.Message)
+		if writerResponse.Status == 0 {
+			rw.Write([]byte("Upload successfully"))
+		} else {
+			rw.Write([]byte("Upload failed"))
+		}
 	case <-ctx.Done():
 		cancelChan <- 1
-		log.Info("request is cancelled")
+		log.Infof("request is cancelled, %s", destinationFilePath)
 	}
 }
 
