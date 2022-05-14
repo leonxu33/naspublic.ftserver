@@ -1,13 +1,12 @@
 package utils
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"path"
 	"runtime"
 	"strings"
-
-	"github.com/lyokalita/naspublic.ftserver/src/config"
 )
 
 func GetFileWithoutExt(fileName string) string {
@@ -15,17 +14,25 @@ func GetFileWithoutExt(fileName string) string {
 }
 
 func GetUniqueFileName(fileName string) string {
-	return fmt.Sprintf("%s_%s%s", fileName[:len(fileName)-len(path.Ext(fileName))], randSeq(6), path.Ext(fileName))
+	return fmt.Sprintf("%s_%s%s", fileName[:len(fileName)-len(path.Ext(fileName))], GetRandomBytes(6), path.Ext(fileName))
 }
 
-var letters = []rune("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+var letters = []byte("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-func randSeq(n int) string {
-	b := make([]rune, n)
+func GetRandomBytes(n int) []byte {
+	b := make([]byte, n)
 	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+		b[i] = letters[GetRandomNumber(int64(len(letters)))]
 	}
-	return string(b)
+	return b
+}
+
+func GetRandomNumber(max int64) int64 {
+	nBig, err := rand.Int(rand.Reader, big.NewInt(max))
+	if err != nil {
+		panic(err)
+	}
+	return nBig.Int64()
 }
 
 func PrintMemUsage() string {
@@ -36,6 +43,13 @@ func PrintMemUsage() string {
 
 func bToMb(b uint64) uint64 {
 	return b / 1024 / 1024
+}
+
+func SplitRemoveEmpty(str string, token rune) []string {
+	f := func(c rune) bool {
+		return c == token
+	}
+	return strings.FieldsFunc(str, f)
 }
 
 // Return extension(without dot) if path is a file.
@@ -50,31 +64,13 @@ func GetFileExtension(filePath string) string {
 	return strings.Split(ext, ".")[1]
 }
 
-func IsPathValid(queryPath string) bool {
-	publicRoot := path.Join(config.PublicDirectoryRoot)
-	//	log.Infof("%s, %s", publicRoot, queryPath)
-
-	if len(queryPath) < len(publicRoot) { // query path must be no shorter than public root
-		return false
+func GetTokenFromHeader(authHeader string) (string, error) {
+	headerArr := SplitRemoveEmpty(authHeader, ' ')
+	if len(headerArr) < 2 {
+		return "", fmt.Errorf("Error format authorization %s", authHeader)
 	}
-
-	if queryPath[:len(publicRoot)] != publicRoot { // query path must start with public root
-		return false
+	if strings.ToLower(headerArr[0]) != "bearer" {
+		return "", fmt.Errorf("Error format authorization %s", authHeader)
 	}
-
-	return true
-}
-
-func CheckPathForDelete(queryPath string) bool {
-	if !IsPathValid(queryPath) {
-		return false
-	}
-
-	publicRoot := path.Join(config.PublicDirectoryRoot)
-
-	if publicRoot == queryPath { // for delete, query path cannot be the same as public root
-		return false
-	}
-
-	return true
+	return headerArr[1], nil
 }

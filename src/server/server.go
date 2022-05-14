@@ -48,27 +48,38 @@ func constructServerMux() *http.ServeMux {
 	uploadCors := cors.New(cors.Options{
 		AllowedOrigins: config.WebfrontendOrigin,
 		AllowedMethods: []string{http.MethodPost},
+		AllowedHeaders: []string{"Authorization"},
 	})
 	uploadHandler := uploadCors.Handler(NewUploadHandler())
 
 	// /download
 	downloadCors := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},
-		AllowedMethods: []string{http.MethodGet},
+		AllowedMethods: []string{http.MethodGet, http.MethodPost},
+		AllowedHeaders: []string{"Authorization"},
 	})
 	downloadHandler := downloadCors.Handler(NewDownloadHandler())
 
 	// /dir
-	listCors := cors.New(cors.Options{
+	dirCors := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},
 		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete},
+		AllowedHeaders: []string{"Authorization"},
 	})
-	listHandler := listCors.Handler(NewListHandler())
+	listHandler := dirCors.Handler(NewDirHandler())
+
+	// /dir
+	authCors := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{http.MethodPost},
+	})
+	AuthHandler := authCors.Handler(NewAuthHandler())
 
 	sm := http.NewServeMux()
 	sm.Handle(path.Join(config.ApiPath, "upload"), uploadHandler)
 	sm.Handle(path.Join(config.ApiPath, "download"), downloadHandler)
 	sm.Handle(path.Join(config.ApiPath, "dir"), listHandler)
+	sm.Handle(path.Join(config.ApiPath, "auth"), AuthHandler)
 
 	return sm
 }
