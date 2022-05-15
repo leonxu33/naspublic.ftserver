@@ -1,0 +1,16 @@
+# github.com/Unknwon/goconfig v1.0.0
+## explicit
+github.com/Unknwon/goconfig
+# github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575
+## explicit
+github.com/cihub/seelog
+github.com/cihub/seelog/archive
+github.com/cihub/seelog/archive/gzip
+github.com/cihub/seelog/archive/tar
+github.com/cihub/seelog/archive/zip
+# github.com/golang-jwt/jwt v3.2.2+incompatible
+## explicit
+github.com/golang-jwt/jwt
+# github.com/rs/cors v1.8.2
+## explicit; go 1.13
+github.com/rs/cors
