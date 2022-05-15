@@ -101,7 +101,7 @@ func (hdl *DirHandler) handleGet(rw http.ResponseWriter, r *http.Request) {
 		MetadataList: metadataList,
 	}
 	res.ToJSON(rw)
-	log.Infof("list %s - %s, %d", fullQueryPath, res.QueryFolder, len(res.MetadataList))
+	log.Infof("list full path: %s, query path: %s, num files: %d, remote: %s", fullQueryPath, res.QueryFolder, len(res.MetadataList), r.RemoteAddr)
 }
 
 type ListFileResponse struct {
@@ -174,7 +174,7 @@ func (hdl *DirHandler) handlePost(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	rw.Write([]byte(queryDir))
-	log.Infof("directory created, query: %s, path: %s", queryDir, fullQueryPath)
+	log.Infof("directory created, query: %s, path: %s, remote: %s", queryDir, fullQueryPath, r.RemoteAddr)
 }
 
 /*
@@ -236,5 +236,5 @@ func (hdl *DirHandler) handleDelete(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	rw.Write([]byte(queryPath))
-	log.Infof("deleted query: %s, path: %s", queryPath, fullQueryPath)
+	log.Infof("deleted query: %s, path: %s, remote: %s", queryPath, fullQueryPath, r.RemoteAddr)
 }

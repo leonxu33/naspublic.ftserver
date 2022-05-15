@@ -7,7 +7,6 @@ import (
 
 	"github.com/Unknwon/goconfig"
 	log "github.com/cihub/seelog"
-	"github.com/lyokalita/naspublic.ftserver/src/utils"
 )
 
 var (
@@ -17,8 +16,10 @@ var (
 	PublicDirectoryRoot string
 	NumCore             int
 	WebfrontendOrigin   []string
-	JwtSecret           []byte = []byte("123")
-	SignSecret          []byte = []byte(utils.GetRandomBytes(32))
+	AuthOrigin          []string
+	JwtSecret           []byte
+	SignSecret          []byte
+	AuthSecret          string
 )
 
 var (
@@ -65,10 +66,18 @@ func LoadConfig() {
 	PublicDirectoryRoot = path.Join(PublicDirectoryRoot)
 	NumCore = cfg.MustInt("hardware", "num_core", 4)
 	WebfrontendOrigin = cfg.MustValueArray("cors", "webfrontend", ",")
+	AuthOrigin = cfg.MustValueArray("cors", "auth", ",")
 
 	err = os.MkdirAll(PublicDirectoryRoot, os.ModePerm)
 	if err != nil {
 		log.Errorf("failed to create download directory %s, err: ", PublicDirectoryRoot, err)
 	}
-	log.Debugf("successfully loaded config, NumCore: %d, Cors: %v", NumCore, WebfrontendOrigin)
+
+	JwtSecret = []byte(os.Getenv("NASPUBLIC_JWT_SECRET"))
+	SignSecret = []byte(os.Getenv("NASPUBLIC_SIGN_SECRET"))
+	AuthSecret = os.Getenv("NASPUBLIC_AUTH_SECRET")
+	if len(JwtSecret) == 0 || len(SignSecret) == 0 || AuthSecret == "" {
+		panic("failed to load secrets")
+	}
+	log.Debugf("successfully loaded config, NumCore: %d, Cors: frontend: %v, auth: %v", NumCore, WebfrontendOrigin, AuthOrigin)
 }

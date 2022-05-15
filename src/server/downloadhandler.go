@@ -39,7 +39,7 @@ Download a file
 GET /api/nas/v0/download?key={file path}
 */
 func (hdl *DownloadHandler) handleGet(rw http.ResponseWriter, r *http.Request) {
-	log.Debug("handle file download request")
+	log.Debugf("handle file download request, remote: %s", r.RemoteAddr)
 
 	// get query parameter
 	signedParam, ok := r.URL.Query()["signed"]
@@ -125,7 +125,7 @@ func (hdl *DownloadHandler) handlePost(rw http.ResponseWriter, r *http.Request) 
 		Nonce:  nonce,
 	}
 	res.ToJSON(rw)
-	log.Infof("signed %s, %s, %v", fsPermission.GetId(), fullQueryPath, res)
+	log.Infof("signed id: %s, full path: %s, remote: %v", fsPermission.GetId(), fullQueryPath, res)
 }
 
 type SigningKeyResponse struct {

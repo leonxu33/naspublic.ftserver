@@ -54,7 +54,7 @@ func constructServerMux() *http.ServeMux {
 
 	// /download
 	downloadCors := cors.New(cors.Options{
-		AllowedOrigins: []string{"*"},
+		AllowedOrigins: config.WebfrontendOrigin,
 		AllowedMethods: []string{http.MethodGet, http.MethodPost},
 		AllowedHeaders: []string{"Authorization"},
 	})
@@ -62,16 +62,16 @@ func constructServerMux() *http.ServeMux {
 
 	// /dir
 	dirCors := cors.New(cors.Options{
-		AllowedOrigins: []string{"*"},
+		AllowedOrigins: config.WebfrontendOrigin,
 		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodDelete},
 		AllowedHeaders: []string{"Authorization"},
 	})
 	listHandler := dirCors.Handler(NewDirHandler())
 
-	// /dir
+	// /auth
 	authCors := cors.New(cors.Options{
-		AllowedOrigins: []string{"*"},
-		AllowedMethods: []string{http.MethodPost},
+		AllowedOrigins: config.AuthOrigin,
+		AllowedMethods: []string{http.MethodPost, http.MethodGet},
 	})
 	AuthHandler := authCors.Handler(NewAuthHandler())
 

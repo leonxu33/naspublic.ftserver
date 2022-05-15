@@ -10,6 +10,7 @@ import (
 	log "github.com/cihub/seelog"
 	"github.com/lyokalita/naspublic.ftserver/src/auth"
 	"github.com/lyokalita/naspublic.ftserver/src/config"
+	"github.com/lyokalita/naspublic.ftserver/src/utils"
 	"github.com/lyokalita/naspublic.ftserver/src/validate"
 )
 
@@ -33,8 +34,21 @@ func (hdl *AuthHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (hdl *AuthHandler) handlePost(rw http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	token, err := utils.GetTokenFromHeader(authHeader)
+	if err != nil {
+		log.Info(err)
+		http.Error(rw, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+	if token != config.AuthSecret {
+		log.Info("token not correct")
+		http.Error(rw, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
 	req := &TokenRequest{}
-	err := req.FromJSON(r.Body)
+	err = req.FromJSON(r.Body)
 	if err != nil {
 		http.Error(rw, "Invalid input", http.StatusBadRequest)
 		log.Info(err)
@@ -55,7 +69,7 @@ func (hdl *AuthHandler) handlePost(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rw.Write([]byte(tokenString))
-	log.Infof("created new token for %v: %s", *req, tokenString)
+	log.Infof("created new token for %v, remote: %s", *req, r.RemoteAddr)
 }
 
 type TokenRequest struct {
@@ -89,6 +103,19 @@ func (p *TokenRequest) Validate() error {
 }
 
 func (hdl *AuthHandler) handleGet(rw http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	token, err := utils.GetTokenFromHeader(authHeader)
+	if err != nil {
+		log.Info(err)
+		http.Error(rw, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+	if token != config.AuthSecret {
+		log.Info(err)
+		http.Error(rw, "Invalid token", http.StatusUnauthorized)
+		return
+	}
+
 	input, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Info(err)
@@ -102,5 +129,6 @@ func (hdl *AuthHandler) handleGet(rw http.ResponseWriter, r *http.Request) {
 		log.Info(err)
 		return
 	}
+	rw.Write([]byte(fmt.Sprintf("%v", *permission)))
 	log.Infof("%v", *permission)
 }

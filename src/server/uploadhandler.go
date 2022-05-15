@@ -74,7 +74,7 @@ func (hdl *UploadHandler) handlePost(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	// begin progress remote data
-	log.Debugf("handle file upload request: %s", fullQueryPath)
+	log.Debugf("handle file upload request full path: %s, remote: %s", fullQueryPath, r.RemoteAddr)
 	ctx := r.Context()
 	cancelChan := make(chan int)
 	responseChan := make(chan *UploadResponse)
