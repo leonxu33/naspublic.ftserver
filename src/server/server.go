@@ -27,7 +27,7 @@ func StartHttpServer() {
 
 	// wrapping ListenAndServe in gofunc so it's not going to block
 	go func() {
-		err := server.ListenAndServe()
+		err := server.ListenAndServeTLS(".cert/naspublic.crt", ".cert/naspublic.key")
 		if err != nil {
 			log.Error(err)
 		}
