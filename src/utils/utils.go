@@ -14,7 +14,7 @@ func GetFileWithoutExt(fileName string) string {
 }
 
 func GetUniqueFileName(fileName string) string {
-	return fmt.Sprintf("%s_%s%s", fileName[:len(fileName)-len(path.Ext(fileName))], GetRandomBytes(6), path.Ext(fileName))
+	return fmt.Sprintf("%s_%s%s", fileName[:len(fileName)-len(path.Ext(fileName))], string(GetRandomBytes(6)), path.Ext(fileName))
 }
 
 var letters = []byte("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -62,15 +62,4 @@ func GetFileExtension(filePath string) string {
 		return ""
 	}
 	return strings.Split(ext, ".")[1]
-}
-
-func GetTokenFromHeader(authHeader string) (string, error) {
-	headerArr := SplitRemoveEmpty(authHeader, ' ')
-	if len(headerArr) < 2 {
-		return "", fmt.Errorf("Error format authorization %s", authHeader)
-	}
-	if strings.ToLower(headerArr[0]) != "bearer" {
-		return "", fmt.Errorf("Error format authorization %s", authHeader)
-	}
-	return headerArr[1], nil
 }

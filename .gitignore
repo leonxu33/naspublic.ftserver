@@ -2,3 +2,4 @@ log/*
 conf/*
 temp/*
 .cert/*
+.vscode/*

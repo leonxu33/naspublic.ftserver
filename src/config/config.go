@@ -20,6 +20,8 @@ var (
 	JwtSecret           []byte
 	SignSecret          []byte
 	AuthSecret          string
+	SSLCertPath         string
+	SSLKeyPath          string
 )
 
 var (
@@ -67,6 +69,8 @@ func LoadConfig() {
 	NumCore = cfg.MustInt("hardware", "num_core", 4)
 	WebfrontendOrigin = cfg.MustValueArray("cors", "webfrontend", ",")
 	AuthOrigin = cfg.MustValueArray("cors", "auth", ",")
+	SSLCertPath = cfg.MustValue("ssl", "cert", ".cert/localhost.cert")
+	SSLCertPath = cfg.MustValue("ssl", "key", ".cert/localhost.key")
 
 	err = os.MkdirAll(PublicDirectoryRoot, os.ModePerm)
 	if err != nil {
@@ -79,5 +83,5 @@ func LoadConfig() {
 	if len(JwtSecret) == 0 || len(SignSecret) == 0 || AuthSecret == "" {
 		panic("failed to load secrets")
 	}
-	log.Debugf("successfully loaded config, NumCore: %d, Cors: frontend: %v, auth: %v", NumCore, WebfrontendOrigin, AuthOrigin)
+	log.Debugf("successfully loaded config, public root: %s, NumCore: %d, Cors: frontend: %v, auth: %v, ssl cert path: %s, ssl key path: %s", PublicDirectoryRoot, NumCore, WebfrontendOrigin, AuthOrigin, SSLCertPath, SSLKeyPath)
 }

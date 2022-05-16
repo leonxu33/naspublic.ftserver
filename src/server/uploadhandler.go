@@ -11,7 +11,6 @@ import (
 	log "github.com/cihub/seelog"
 	"github.com/lyokalita/naspublic.ftserver/src/auth"
 	"github.com/lyokalita/naspublic.ftserver/src/fs"
-	"github.com/lyokalita/naspublic.ftserver/src/utils"
 	"github.com/lyokalita/naspublic.ftserver/src/validate"
 )
 
@@ -38,7 +37,7 @@ POST /api/nas/v0/upload?key={file path}
 func (hdl *UploadHandler) handlePost(rw http.ResponseWriter, r *http.Request) {
 	// Get Jwt token
 	authHeader := r.Header.Get("Authorization")
-	token, err := utils.GetTokenFromHeader(authHeader)
+	token, err := GetTokenFromHeader(authHeader)
 	if err != nil {
 		log.Info(err)
 		http.Error(rw, "Invalid token", http.StatusUnauthorized)

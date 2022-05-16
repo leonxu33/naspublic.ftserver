@@ -11,7 +11,6 @@ import (
 	log "github.com/cihub/seelog"
 	"github.com/lyokalita/naspublic.ftserver/src/auth"
 	"github.com/lyokalita/naspublic.ftserver/src/fs"
-	"github.com/lyokalita/naspublic.ftserver/src/utils"
 )
 
 type DirHandler struct {
@@ -45,7 +44,7 @@ GET /api/nas/v0/dir?key={directory path}
 func (hdl *DirHandler) handleGet(rw http.ResponseWriter, r *http.Request) {
 	// Get Jwt token
 	authHeader := r.Header.Get("Authorization")
-	token, err := utils.GetTokenFromHeader(authHeader)
+	token, err := GetTokenFromHeader(authHeader)
 	if err != nil {
 		log.Info(err)
 		http.Error(rw, "Invalid token", http.StatusUnauthorized)
@@ -122,7 +121,7 @@ POST /api/nas/v0/dir?key={directory path}
 func (hdl *DirHandler) handlePost(rw http.ResponseWriter, r *http.Request) {
 	// Get Jwt token
 	authHeader := r.Header.Get("Authorization")
-	token, err := utils.GetTokenFromHeader(authHeader)
+	token, err := GetTokenFromHeader(authHeader)
 	if err != nil {
 		log.Info(err)
 		http.Error(rw, "Invalid token", http.StatusUnauthorized)
@@ -185,7 +184,7 @@ DELETE /api/nas/v0/dir?key={target path}
 func (hdl *DirHandler) handleDelete(rw http.ResponseWriter, r *http.Request) {
 	// Get Jwt token
 	authHeader := r.Header.Get("Authorization")
-	token, err := utils.GetTokenFromHeader(authHeader)
+	token, err := GetTokenFromHeader(authHeader)
 	if err != nil {
 		log.Info(err)
 		http.Error(rw, "Invalid token", http.StatusUnauthorized)

@@ -10,7 +10,6 @@ import (
 	log "github.com/cihub/seelog"
 	"github.com/lyokalita/naspublic.ftserver/src/auth"
 	"github.com/lyokalita/naspublic.ftserver/src/config"
-	"github.com/lyokalita/naspublic.ftserver/src/utils"
 	"github.com/lyokalita/naspublic.ftserver/src/validate"
 )
 
@@ -35,7 +34,7 @@ func (hdl *AuthHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 func (hdl *AuthHandler) handlePost(rw http.ResponseWriter, r *http.Request) {
 	authHeader := r.Header.Get("Authorization")
-	token, err := utils.GetTokenFromHeader(authHeader)
+	token, err := GetTokenFromHeader(authHeader)
 	if err != nil {
 		log.Info(err)
 		http.Error(rw, "Invalid token", http.StatusUnauthorized)
@@ -104,7 +103,7 @@ func (p *TokenRequest) Validate() error {
 
 func (hdl *AuthHandler) handleGet(rw http.ResponseWriter, r *http.Request) {
 	authHeader := r.Header.Get("Authorization")
-	token, err := utils.GetTokenFromHeader(authHeader)
+	token, err := GetTokenFromHeader(authHeader)
 	if err != nil {
 		log.Info(err)
 		http.Error(rw, "Invalid token", http.StatusUnauthorized)
