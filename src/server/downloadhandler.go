@@ -114,12 +114,13 @@ func (hdl *DownloadHandler) handlePost(rw http.ResponseWriter, r *http.Request) 
 		return
 	}
 	info, _ := os.Stat(requestedFileList[0])
-	if len(requestedFileList) == 1 && !info.IsDir() { // serve file directly if only one file is requested
+	if len(requestedFileList) == 1 && !info.IsDir() { // serve file directly if only one file is requested and not a folder
 		downloadFilePath = requestedFileList[0]
-	} else { // zip files first if multiple requested files
+	} else { // zip files first if a folder or multiple files are requested
 		downloadFilePath, err = fs.ServeMultipleFilesWithCompression(requestedFileList)
 		signType = auth.SIGN_ZIPPED
 		if err != nil {
+			routine.CleanFile(downloadFilePath)
 			log.Error(err)
 			http.Error(rw, "Failed to zip files", http.StatusNotFound)
 			return
@@ -129,7 +130,9 @@ func (hdl *DownloadHandler) handlePost(rw http.ResponseWriter, r *http.Request) 
 	// generate signing key
 	signed, nonce, err := auth.DLSigning.Generate(&auth.SignedMetadata{TokenId: fsPermission.Id(), FilePath: downloadFilePath, ExpAt: fsPermission.ExpAt(), Type: signType})
 	if err != nil {
-		log.Errorf("failed to sign %s, %s, err: %v", fsPermission.Id(), downloadFilePath, err)
+		routine.CleanFile(downloadFilePath)
+		log.Errorf("failed to sign %s, err: %v", downloadFilePath, err)
+		http.Error(rw, "Failed to get download url", http.StatusNotFound)
 		return
 	}
 	res := &DownloadPostResponse{
