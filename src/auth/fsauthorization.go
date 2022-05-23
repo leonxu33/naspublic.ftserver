@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path"
 
+	"github.com/lyokalita/naspublic.ftserver/src/utils"
 	"github.com/lyokalita/naspublic.ftserver/src/validate"
 )
 
@@ -13,10 +14,27 @@ type FsPermission struct {
 	write     bool
 	delete    bool
 	directory string
+	expAt     int64
 }
 
-func (c *FsPermission) GetId() string {
+func (c *FsPermission) Id() string {
 	return c.id
+}
+
+func (c *FsPermission) AllowRead() bool {
+	return c.read
+}
+
+func (c *FsPermission) AllowWrite() bool {
+	return c.write
+}
+
+func (c *FsPermission) AllowDelete() bool {
+	return c.delete
+}
+
+func (c *FsPermission) ExpAt() int64 {
+	return c.expAt
 }
 
 func (c *FsPermission) CheckRead(targetPath string) (string, error) {
@@ -50,4 +68,8 @@ func (c *FsPermission) CheckDelete(targetPath string) (string, error) {
 		return "", fmt.Errorf("no delete permission to %s", fullTargetPath)
 	}
 	return fullTargetPath, nil
+}
+
+func (c *FsPermission) String() string {
+	return fmt.Sprintf("permission id: %s, dir: %s, read: %v, write: %v, delete: %v, expAt: %s", c.id, c.directory, c.read, c.write, c.delete, utils.ConvertUnixTimeToString(c.expAt))
 }

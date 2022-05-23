@@ -30,7 +30,7 @@ func GetFileMetadataList(dirPath string) ([]*FileMetadata, error) {
 			Name:         file.Name(),
 			Size:         file.Size(),
 			Type:         fileType,
-			LastModified: file.ModTime().Format("2006-01-02 15:04:05"),
+			LastModified: file.ModTime().Format(utils.GetDateFormatString()),
 		})
 	}
 	return metadataList, err

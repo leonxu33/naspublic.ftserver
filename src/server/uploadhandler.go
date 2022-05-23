@@ -6,10 +6,8 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"strings"
 
 	log "github.com/cihub/seelog"
-	"github.com/lyokalita/naspublic.ftserver/src/auth"
 	"github.com/lyokalita/naspublic.ftserver/src/fs"
 	"github.com/lyokalita/naspublic.ftserver/src/validate"
 )
@@ -35,39 +33,19 @@ Upload a file
 POST /api/nas/v0/upload?key={file path}
 */
 func (hdl *UploadHandler) handlePost(rw http.ResponseWriter, r *http.Request) {
-	// Get Jwt token
-	authHeader := r.Header.Get("Authorization")
-	token, err := GetTokenFromHeader(authHeader)
+	fsPermission, err := ValidateJwtAuthorization(rw, r)
 	if err != nil {
-		log.Info(err)
-		http.Error(rw, "Invalid token", http.StatusUnauthorized)
+		log.Error(err)
 		return
 	}
 
-	// check token is valid and not expired
-	fsPermission, err := auth.ValidateJwtToken(token)
-	if err != nil {
-		log.Info(err)
-		if strings.Contains(err.Error(), "expired") {
-			http.Error(rw, "Token expired", http.StatusUnauthorized)
-		} else {
-			http.Error(rw, "Invalid token", http.StatusUnauthorized)
-		}
-		return
-	}
-
-	// get query parameter
-	keys, ok := r.URL.Query()["key"]
-	queryDir := ""
-	if ok && len(keys[0]) > 0 {
-		queryDir = keys[0]
-	}
+	queryDir := GetQueryParam("key", r)
 	queryDir = path.Join(queryDir)
 
 	// check permission and get full directory
 	fullQueryPath, err := fsPermission.CheckWrite(queryDir)
 	if err != nil {
-		log.Infof("%v, err: %v", *fsPermission, err)
+		log.Errorf("%v, err: %v", *fsPermission, err)
 		http.Error(rw, "No permission", http.StatusForbidden)
 		return
 	}
@@ -81,26 +59,26 @@ func (hdl *UploadHandler) handlePost(rw http.ResponseWriter, r *http.Request) {
 
 	// fetch remote data
 	r.ParseMultipartForm(partSize)
-	f_in, handler, err := r.FormFile("uploadFile")
+	f_in, header, err := r.FormFile("uploadFile")
 	if err != nil {
 		log.Errorf("failed to retrieve file, err: ", err)
 		http.Error(rw, "Invalid file", http.StatusBadRequest)
 		return
 	}
 	defer f_in.Close()
-	log.Infof("Upload File: %s, File Size: %v, MIME Header: %v", handler.Filename, handler.Size, handler.Header)
+	log.Infof("Upload File: %s, File Size: %v, MIME Header: %v", header.Filename, header.Size, header.Header)
 
 	// check file name length
-	if len(handler.Filename) > 250 {
-		log.Infof("file name is too long: %d", len(handler.Filename))
+	if len(header.Filename) > 250 {
+		log.Errorf("file name is too long: %d", len(header.Filename))
 		http.Error(rw, "File name too long", http.StatusBadRequest)
 		return
 	}
 
 	// check path valid
-	destinationFilePath := path.Join(fullQueryPath, handler.Filename)
+	destinationFilePath := path.Join(fullQueryPath, header.Filename)
 	if !validate.IsPathInclusive(fullQueryPath, destinationFilePath) {
-		log.Infof("invalid file name, %s", destinationFilePath)
+		log.Errorf("invalid file name, %s", destinationFilePath)
 		http.Error(rw, "Invalid file name", http.StatusBadRequest)
 		return
 	}
@@ -108,18 +86,18 @@ func (hdl *UploadHandler) handlePost(rw http.ResponseWriter, r *http.Request) {
 	// check file exists
 	_, err = os.Stat(destinationFilePath)
 	if err == nil {
-		log.Infof("file already exists, %s", destinationFilePath)
+		log.Errorf("file already exists, %s", destinationFilePath)
 		http.Error(rw, "File already exists", http.StatusConflict)
 		return
 	}
 
 	// save file
-	fileWriter := fs.NewFileUploader(f_in, handler.Size, partSize, cancelChan)
+	fileWriter := fs.NewFileUploader(f_in, header.Size, partSize, cancelChan)
 	go func() {
 		defer close(responseChan)
 		totalWriteSize, err := fileWriter.WriteTo(destinationFilePath)
 		if err != nil {
-			log.Infof("failed to write to file %s, err: %v", destinationFilePath, err)
+			log.Errorf("failed to write to file %s, err: %v", destinationFilePath, err)
 			err = os.Remove(destinationFilePath)
 			if err != nil {
 				log.Errorf("failed to clean file %s", destinationFilePath)

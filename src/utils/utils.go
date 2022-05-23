@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"math/big"
 	"path"
+	"regexp"
 	"runtime"
 	"strings"
+	"time"
 )
 
 func GetFileWithoutExt(fileName string) string {
@@ -62,4 +64,20 @@ func GetFileExtension(filePath string) string {
 		return ""
 	}
 	return strings.Split(ext, ".")[1]
+}
+
+func GetDateFormatString() string {
+	return "2006-01-02 15:04:05"
+}
+
+func ConvertUnixTimeToString(t int64) string {
+	return time.Unix(t, 0).Format(GetDateFormatString())
+}
+
+func GetCurrentTimeCompact() string {
+	reg, err := regexp.Compile("[^0-9]+")
+	if err != nil {
+		return "20000101010000"
+	}
+	return reg.ReplaceAllString(time.Now().Format("2006-01-02 15:04:05"), "")
 }

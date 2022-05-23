@@ -6,10 +6,8 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"strings"
 
 	log "github.com/cihub/seelog"
-	"github.com/lyokalita/naspublic.ftserver/src/auth"
 	"github.com/lyokalita/naspublic.ftserver/src/fs"
 )
 
@@ -42,39 +40,19 @@ List all files and folders in a directory
 GET /api/nas/v0/dir?key={directory path}
 */
 func (hdl *DirHandler) handleGet(rw http.ResponseWriter, r *http.Request) {
-	// Get Jwt token
-	authHeader := r.Header.Get("Authorization")
-	token, err := GetTokenFromHeader(authHeader)
+	fsPermission, err := ValidateJwtAuthorization(rw, r)
 	if err != nil {
-		log.Info(err)
-		http.Error(rw, "Invalid token", http.StatusUnauthorized)
+		log.Error(err)
 		return
 	}
 
-	// check token is valid and not expired
-	fsPermission, err := auth.ValidateJwtToken(token)
-	if err != nil {
-		log.Info(err)
-		if strings.Contains(err.Error(), "expired") {
-			http.Error(rw, "Token expired", http.StatusUnauthorized)
-		} else {
-			http.Error(rw, "Invalid token", http.StatusUnauthorized)
-		}
-		return
-	}
-
-	// get query parameter
-	keys, ok := r.URL.Query()["key"]
-	queryDir := ""
-	if ok && len(keys[0]) > 0 {
-		queryDir = keys[0]
-	}
+	queryDir := GetQueryParam("key", r)
 	queryDir = path.Join(queryDir)
 
 	// check permission and get full directory
 	fullQueryPath, err := fsPermission.CheckRead(queryDir)
 	if err != nil {
-		log.Infof("%v, err: %v", *fsPermission, err)
+		log.Errorf("%s, err: %v", fsPermission.String(), err)
 		http.Error(rw, "No permission", http.StatusForbidden)
 		return
 	}
@@ -82,7 +60,7 @@ func (hdl *DirHandler) handleGet(rw http.ResponseWriter, r *http.Request) {
 	// check directory exists
 	_, err = os.Stat(fullQueryPath)
 	if err != nil {
-		log.Infof("directory %s does not exit, err: %v", fullQueryPath, err)
+		log.Errorf("directory %s does not exit, err: %v", fullQueryPath, err)
 		http.Error(rw, "Directory does not exit", http.StatusNotFound)
 		return
 	}
@@ -119,33 +97,13 @@ Create a directory
 POST /api/nas/v0/dir?key={directory path}
 */
 func (hdl *DirHandler) handlePost(rw http.ResponseWriter, r *http.Request) {
-	// Get Jwt token
-	authHeader := r.Header.Get("Authorization")
-	token, err := GetTokenFromHeader(authHeader)
+	fsPermission, err := ValidateJwtAuthorization(rw, r)
 	if err != nil {
-		log.Info(err)
-		http.Error(rw, "Invalid token", http.StatusUnauthorized)
+		log.Error(err)
 		return
 	}
 
-	// check token is valid and not expired
-	fsPermission, err := auth.ValidateJwtToken(token)
-	if err != nil {
-		log.Info(err)
-		if strings.Contains(err.Error(), "expired") {
-			http.Error(rw, "Token expired", http.StatusUnauthorized)
-		} else {
-			http.Error(rw, "Invalid token", http.StatusUnauthorized)
-		}
-		return
-	}
-
-	// get query parameter
-	keys, ok := r.URL.Query()["key"]
-	queryDir := ""
-	if ok && len(keys[0]) > 0 {
-		queryDir = keys[0]
-	}
+	queryDir := GetQueryParam("key", r)
 	queryDir = path.Join(queryDir)
 
 	// check permission and get full directory
@@ -182,33 +140,13 @@ Delete a target
 DELETE /api/nas/v0/dir?key={target path}
 */
 func (hdl *DirHandler) handleDelete(rw http.ResponseWriter, r *http.Request) {
-	// Get Jwt token
-	authHeader := r.Header.Get("Authorization")
-	token, err := GetTokenFromHeader(authHeader)
+	fsPermission, err := ValidateJwtAuthorization(rw, r)
 	if err != nil {
-		log.Info(err)
-		http.Error(rw, "Invalid token", http.StatusUnauthorized)
+		log.Error(err)
 		return
 	}
 
-	// check token is valid and not expired
-	fsPermission, err := auth.ValidateJwtToken(token)
-	if err != nil {
-		log.Info(err)
-		if strings.Contains(err.Error(), "expired") {
-			http.Error(rw, "Token expired", http.StatusUnauthorized)
-		} else {
-			http.Error(rw, "Invalid token", http.StatusUnauthorized)
-		}
-		return
-	}
-
-	// get query parameter
-	keys, ok := r.URL.Query()["key"]
-	queryPath := ""
-	if ok && len(keys[0]) > 0 {
-		queryPath = keys[0]
-	}
+	queryPath := GetQueryParam("key", r)
 	queryPath = path.Join(queryPath)
 
 	// check permission and get full directory
@@ -227,6 +165,7 @@ func (hdl *DirHandler) handleDelete(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// remove target path
 	err = os.RemoveAll(fullQueryPath)
 	if err != nil {
 		log.Errorf("failed to delete %s, err: ", fullQueryPath, err)

@@ -11,15 +11,10 @@ import (
 	"github.com/lyokalita/naspublic.ftserver/src/validate"
 )
 
-type VisitorAuthField struct {
-	Mode string
-	Dir  string
-}
-
-type VisitorClaim struct {
+type FtAuthClaim struct {
 	*jwt.StandardClaims
-	TokenType string
-	VisitorAuthField
+	Dir  string `json:"dir,omitempty"`
+	Mode string `json:"scope,omitempty"`
 }
 
 /*
@@ -31,37 +26,36 @@ param:
 return:
 - signed token string
 */
-func GenerateJwtToken(mode string, dir string, valid int64) (string, error) {
+func GenerateJwtToken(scope string, dir string, valid int64) (string, error) {
 	expAt := time.Now().Add(time.Minute * time.Duration(valid)).Unix()
 
 	t := jwt.New(jwt.GetSigningMethod("HS256"))
-	t.Claims = &VisitorClaim{
+	t.Claims = &FtAuthClaim{
 		&jwt.StandardClaims{
 			Id:        string(utils.GetRandomBytes(8)),
+			Issuer:    config.DomainName,
+			IssuedAt:  time.Now().Unix(),
 			ExpiresAt: expAt,
 		},
-		"level1",
-		VisitorAuthField{
-			Mode: mode,
-			Dir:  dir,
-		},
+		dir,
+		scope,
 	}
 
 	return t.SignedString(config.JwtSecret)
 }
 
 func ValidateJwtToken(tokenString string) (*FsPermission, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &VisitorClaim{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &FtAuthClaim{}, func(token *jwt.Token) (interface{}, error) {
 		return config.JwtSecret, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	claims := token.Claims.(*VisitorClaim)
+	claims := token.Claims.(*FtAuthClaim)
 
-	if !validate.IsModeValid(claims.Mode) {
-		return nil, fmt.Errorf("invalid permission mode")
+	if claims.Issuer != config.DomainName {
+		return nil, fmt.Errorf("invalid issuer")
 	}
 
 	completeDir := path.Join(config.PublicDirectoryRoot, claims.Dir)
@@ -75,5 +69,6 @@ func ValidateJwtToken(tokenString string) (*FsPermission, error) {
 		write:     claims.Mode[1] == validate.WRITE_MODE,
 		delete:    claims.Mode[2] == validate.DELETE_MODE,
 		directory: completeDir,
+		expAt:     claims.ExpiresAt,
 	}, nil
 }

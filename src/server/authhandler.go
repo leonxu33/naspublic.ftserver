@@ -10,6 +10,7 @@ import (
 	log "github.com/cihub/seelog"
 	"github.com/lyokalita/naspublic.ftserver/src/auth"
 	"github.com/lyokalita/naspublic.ftserver/src/config"
+	"github.com/lyokalita/naspublic.ftserver/src/utils"
 	"github.com/lyokalita/naspublic.ftserver/src/validate"
 )
 
@@ -36,12 +37,12 @@ func (hdl *AuthHandler) handlePost(rw http.ResponseWriter, r *http.Request) {
 	authHeader := r.Header.Get("Authorization")
 	token, err := GetTokenFromHeader(authHeader)
 	if err != nil {
-		log.Info(err)
+		log.Error(err)
 		http.Error(rw, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 	if token != config.AuthSecret {
-		log.Info("token not correct")
+		log.Error("token not correct")
 		http.Error(rw, "Invalid token", http.StatusUnauthorized)
 		return
 	}
@@ -50,21 +51,21 @@ func (hdl *AuthHandler) handlePost(rw http.ResponseWriter, r *http.Request) {
 	err = req.FromJSON(r.Body)
 	if err != nil {
 		http.Error(rw, "Invalid input", http.StatusBadRequest)
-		log.Info(err)
+		log.Error(err)
 		return
 	}
 
 	err = req.Validate()
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
-		log.Info(err)
+		log.Error(err)
 		return
 	}
 
 	tokenString, err := auth.GenerateJwtToken(req.Mode, req.Dir, req.Valid)
 	if err != nil {
 		http.Error(rw, "Failed to create token", http.StatusBadRequest)
-		log.Info(err)
+		log.Error(err)
 		return
 	}
 	rw.Write([]byte(tokenString))
@@ -102,32 +103,30 @@ func (p *TokenRequest) Validate() error {
 }
 
 func (hdl *AuthHandler) handleGet(rw http.ResponseWriter, r *http.Request) {
-	authHeader := r.Header.Get("Authorization")
-	token, err := GetTokenFromHeader(authHeader)
+	fsPermission, err := ValidateJwtAuthorization(rw, r)
 	if err != nil {
-		log.Info(err)
-		http.Error(rw, "Invalid token", http.StatusUnauthorized)
-		return
-	}
-	if token != config.AuthSecret {
-		log.Info(err)
-		http.Error(rw, "Invalid token", http.StatusUnauthorized)
+		log.Error(err)
 		return
 	}
 
-	input, err := io.ReadAll(r.Body)
-	if err != nil {
-		log.Info(err)
-		return
+	res := &AuthGetResponse{
+		Read:   fsPermission.AllowRead(),
+		Write:  fsPermission.AllowWrite(),
+		Delete: fsPermission.AllowDelete(),
+		ExpAt:  utils.ConvertUnixTimeToString(fsPermission.ExpAt()),
 	}
+	res.ToJSON(rw)
+	log.Info(fsPermission.String())
+}
 
-	tokenString := string(input)
-	log.Info(tokenString)
-	permission, err := auth.ValidateJwtToken(tokenString)
-	if err != nil {
-		log.Info(err)
-		return
-	}
-	rw.Write([]byte(fmt.Sprintf("%v", *permission)))
-	log.Infof("%v", *permission)
+type AuthGetResponse struct {
+	Read   bool
+	Write  bool
+	Delete bool
+	ExpAt  string
+}
+
+func (p *AuthGetResponse) ToJSON(w io.Writer) error {
+	encoder := json.NewEncoder(w)
+	return encoder.Encode(p)
 }

@@ -13,7 +13,9 @@ var (
 	ServerHost          string
 	ServerPort          int
 	ApiPath             string
+	DomainName          string
 	PublicDirectoryRoot string
+	TempDirectoryRoot   string
 	NumCore             int
 	WebfrontendOrigin   []string
 	AuthOrigin          []string
@@ -64,17 +66,20 @@ func LoadConfig() {
 	ServerHost = cfg.MustValue("server", "host", "")
 	ServerPort = cfg.MustInt("server", "port", 4500)
 	ApiPath = cfg.MustValue("server", "path", "/api/nas/v0")
-	PublicDirectoryRoot = cfg.MustValue("directory_root", "path", "./temp/")
+	DomainName = cfg.MustValue("server", "domain", "")
+	PublicDirectoryRoot = cfg.MustValue("directory_root", "public", "./temp/")
 	PublicDirectoryRoot = path.Join(PublicDirectoryRoot)
+	TempDirectoryRoot = cfg.MustValue("directory_root", "temp", "./tmp/")
+	TempDirectoryRoot = path.Join(TempDirectoryRoot)
 	NumCore = cfg.MustInt("hardware", "num_core", 4)
 	WebfrontendOrigin = cfg.MustValueArray("cors", "webfrontend", ",")
 	AuthOrigin = cfg.MustValueArray("cors", "auth", ",")
 	SSLCertPath = cfg.MustValue("ssl", "cert", ".cert/localhost.cert")
-	SSLCertPath = cfg.MustValue("ssl", "key", ".cert/localhost.key")
+	SSLKeyPath = cfg.MustValue("ssl", "key", ".cert/localhost.key")
 
-	err = os.MkdirAll(PublicDirectoryRoot, os.ModePerm)
+	err = CreateDirectories()
 	if err != nil {
-		log.Errorf("failed to create download directory %s, err: ", PublicDirectoryRoot, err)
+		panic(err)
 	}
 
 	JwtSecret = []byte(os.Getenv("NASPUBLIC_JWT_SECRET"))
@@ -84,4 +89,24 @@ func LoadConfig() {
 		panic("failed to load secrets")
 	}
 	log.Debugf("successfully loaded config, public root: %s, NumCore: %d, Cors: frontend: %v, auth: %v, ssl cert path: %s, ssl key path: %s", PublicDirectoryRoot, NumCore, WebfrontendOrigin, AuthOrigin, SSLCertPath, SSLKeyPath)
+}
+
+func CreateDirectories() error {
+	err := os.MkdirAll(PublicDirectoryRoot, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(TempDirectoryRoot, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll("conf", os.ModePerm)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll("log", os.ModePerm)
+	if err != nil {
+		return err
+	}
+	return nil
 }
