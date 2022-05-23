@@ -3,3 +3,4 @@ conf/*
 temp/*
 .cert/*
 .vscode/*
+vendor/*
